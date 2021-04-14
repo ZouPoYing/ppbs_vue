@@ -30,7 +30,7 @@
           </el-table-column>
           <el-table-column
             prop="maxmoney"
-            label="最高价">
+            label="最低价">
           </el-table-column>
           <el-table-column
             prop="enddate"

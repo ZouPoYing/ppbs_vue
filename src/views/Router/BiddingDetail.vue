@@ -22,11 +22,11 @@
         起拍价：{{orderForm.minmoney}}
       </el-col>
       <el-col :span="12" class="order">
-        文件下载：<el-button type="primary" @click="downloadFile()">下载{{}}</el-button>
+        文件下载：<el-button type="primary" @click="downloadFile(orderForm.filename)">下载{{orderForm.name}}</el-button>
       </el-col>
     </el-row>
     <el-row type="flex" justify="center">
-      <el-col :span="12" class="order" style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);height: 80px;" >
+      <el-col v-if="isSetInterva" :span="12" class="order" style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);height: 80px;" >
         <div style="margin-top: 20px;">
           距离竞拍结束还剩下：
           <el-tag>{{day}}</el-tag>天
@@ -35,16 +35,63 @@
           <el-tag>{{second}}</el-tag>秒
         </div>
       </el-col>
+      <el-col v-else :span="12" class="order" style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);height: 80px;" >
+        <div style="margin-top: 20px;">
+          竞拍已结束
+        </div>
+      </el-col>
       <el-col :span="12" class="order" style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);height: 80px;" >
         <div style="margin-top: 20px;">
-          当前最高报价：
+          当前最低报价：
           <el-tag>{{orderForm.maxmoney}}</el-tag>元
         </div>
       </el-col>
     </el-row>
     <el-row type="flex" justify="center">
       <el-col :span="6">
-        <el-card class="box-card">
+        <el-card v-if="showBidder" class="box-card">
+          <div slot="header" class="clearfix">
+            <span>竞价方信息</span>
+          </div>
+          <div v-for="item in bidderInfo" :key="index" class="text item">
+            <el-row type="flex">
+              <el-col class="applicantInfo">
+                竞价方姓名：{{item.username}}
+              </el-col>
+            </el-row>
+            <el-row type="flex">
+              <el-col class="applicantInfo">
+                竞价方电话：{{item.telephone}}
+              </el-col>
+            </el-row>
+            <el-row type="flex">
+              <el-col class="applicantInfo">
+                竞价方邮箱：{{item.email}}
+              </el-col>
+            </el-row>
+            <el-row type="flex">
+              <el-col class="applicantInfo">
+                竞价方单位：{{item.company}}
+              </el-col>
+            </el-row>
+            <el-row type="flex">
+              <el-col class="applicantInfo">
+                竞价方单位地址：{{item.address}}
+              </el-col>
+            </el-row>
+            <el-row type="flex">
+              <el-col class="applicantInfo">
+                竞价方资格审核时间：{{item.date}}
+              </el-col>
+            </el-row>
+            <el-row type="flex">
+              <el-col>
+                <el-button type="primary" @click="downloadFile(item.filename)">下载{{item.name}}</el-button>
+              </el-col>
+            </el-row>
+          </div>
+        </el-card>
+        <el-card v-else class="box-card">
           <div slot="header" class="clearfix">
             <span>申购方信息</span>
           </div>
@@ -84,14 +131,6 @@
                 <el-button type="primary" @click="downloadFile(item.filename)">下载{{item.name}}</el-button>
               </el-col>
             </el-row>
-          </div>
-        </el-card>
-        <el-card class="box-card">
-          <div slot="header" class="clearfix">
-            <span>竞价方信息</span>
-          </div>
-          <div v-for="o in 4" :key="o" class="text item">
-            {{'列表内容 ' + o }}
           </div>
         </el-card>
       </el-col>
@@ -136,7 +175,7 @@
         </el-dialog>
       </el-col>
     </el-row>
-    <el-button style="position: fixed;bottom: 60px;right: 50px; z-index: 100;" @click="offer" type="primary">报价</el-button>
+    <el-button v-if="isSetInterva" style="position: fixed;bottom: 60px;right: 50px; z-index: 100;" @click="offer" type="primary">报价</el-button>
   </div>
 </template>
 
@@ -150,27 +189,29 @@ export default {
       orderid: this.$route.query.orderid,
       orderForm: {},
       applicantInfo: [],
+      bidderInfo: [],
       tableData: [],
       day: '',
       hour: '',
       minute: '',
       second: '',
       money: '',
-      dialogVisible: false
+      dialogVisible: false,
+      isSetInterva: true,
+      showBidder: false
     }
   },
   created() {
     this.getOrder();
     this.getApplicant();
+    this.getBidder();
     this.getOfferByOrderid();
-  },
-  mounted() {
-    setInterval(this.time, 1000);
+    this.isMyOrder();
   },
   methods: {
     getOrder() {
       var self = this;
-      axios.post('http://localhost:9091/ppbs/order/getOrderByOrderid',{
+      axios.post('http://localhost:9091/ppbs/order/getOrderAndFileByOrderid',{
         orderid: self.orderid
       }).then(function(res){
         self.orderForm = res.data
@@ -189,6 +230,16 @@ export default {
         self.$message.error(err);
       })
     },
+    getBidder() {
+      var self = this;
+      axios.post('http://localhost:9091/ppbs/order/getBidder',{
+        orderid: self.orderid
+      }).then(function(res){
+        self.bidderInfo = res.data
+      }).catch(function(err){
+        self.$message.error(err);
+      })
+    },
     getOfferByOrderid() {
       var self = this;
       axios.post('http://localhost:9091/ppbs/offer/getOfferByOrderid',{
@@ -203,19 +254,24 @@ export default {
       window.location.href='http://localhost:9091/ppbs/set/downloadFile/' + filename;
     },
     time() {
-      var nowtime = new Date();
-      var date = new Date(this.orderForm.enddate).getTime() - nowtime.getTime();   //时间差的毫秒数
-      this.day = Math.floor(date/(24*3600*1000));
-      //计算出小时数
-      var leave1 = date % (24*3600*1000)    //计算天数后剩余的毫秒数
-      this.hour = Math.floor(leave1/(3600*1000))
-      //计算相差分钟数
-      var leave2 = leave1 % (3600*1000)        //计算小时数后剩余的毫秒数
-      this.minute = Math.floor(leave2/(60*1000))
-      //计算相差秒数
-      var leave3 = leave2 % (60*1000)      //计算分钟数后剩余的毫秒数
-      this.second = Math.round(leave3/1000)
-      setInterval(this.time(), 1000);
+      var self = this
+      setInterval(() =>{ // 某些定时器操作
+        var nowtime = new Date();
+        var date = new Date(self.orderForm.enddate).getTime() - nowtime.getTime();   //时间差的毫秒数
+        this.day = Math.floor(date/(24*3600*1000));
+        //计算出小时数
+        var leave1 = date % (24*3600*1000)    //计算天数后剩余的毫秒数
+        this.hour = Math.floor(leave1/(3600*1000))
+        //计算相差分钟数
+        var leave2 = leave1 % (3600*1000)        //计算小时数后剩余的毫秒数
+        this.minute = Math.floor(leave2/(60*1000))
+        //计算相差秒数
+        var leave3 = leave2 % (60*1000)      //计算分钟数后剩余的毫秒数
+        this.second = Math.round(leave3/1000)
+        if (parseInt(self.day)<=0 && parseInt(self.hour)<=0 && parseInt(self.minute)<=0 && parseInt(self.second)<=0) {
+          self.isSetInterva = false;
+        }
+      }, 1000);
     },
     offer() {
       this.dialogVisible = !this.dialogVisible
@@ -223,10 +279,10 @@ export default {
     addBidding() {
       var self = this
       this.dialogVisible = !this.dialogVisible
-      if (this.money <= this.orderForm.minmoney) {
-        this.$message.error('报价不能低于起拍价');
-      } else if (this.money < this.orderForm.maxmoney) {
-        this.$confirm('报价低于最高价，你可能竞拍失败，还要继续报价吗？', '提示', {
+      if (this.money >= this.orderForm.minmoney) {
+        this.$message.error('报价不能高于起拍价');
+      } else if (this.money > this.orderForm.maxmoney) {
+        this.$confirm('报价高于最低价，你可能竞拍失败，还要继续报价吗？', '提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'
@@ -269,6 +325,21 @@ export default {
           self.$message.error(err);
         })
       }
+    },
+    isMyOrder() {
+      var self = this
+      axios.post('http://localhost:9091/ppbs/order/isMyOrder',{
+        orderid: self.orderid,
+        userid: self.$store.state.user.userid
+      }).then(function(res){
+        if (res.data.success) {
+          self.showBidder = true
+        } else {
+          self.$message.error(res.data.msg);
+        }
+      }).catch(function(err){
+        self.$message.error(err);
+      })
     }
   }
 }

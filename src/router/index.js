@@ -12,6 +12,9 @@ import ApplyBuySetting from "../views/Router/ApplyBuySetting";
 import ApplyBuyAudit from "../views/Router/ApplyBuyAudit";
 import BiddingRoom from "../views/Router/BiddingRoom";
 import BiddingDetail from "../views/Router/BiddingDetail";
+import ChoiceSupplier from "../views/Router/ChoiceSupplier";
+import ChoiceSupplierAudit from "../views/Router/ChoiceSupplierAudit";
+import Evaluate from "../views/Router/Evaluate";
 
 Vue.use(Router)
 
@@ -76,6 +79,21 @@ export default new Router({
       path: '/biddingDetail',
       name: 'BiddingDetail',
       component: BiddingDetail
+    },
+    {
+      path: '/choiceSupplier',
+      name: 'ChoiceSupplier',
+      component: ChoiceSupplier
+    },
+    {
+      path: '/choiceSupplierAudit',
+      name: 'ChoiceSupplierAudit',
+      component: ChoiceSupplierAudit
+    },
+    {
+      path: '/evaluate',
+      name: 'Evaluate',
+      component: Evaluate
     }
   ]
 })
